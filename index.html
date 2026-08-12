@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZebraControl — Gestión de Impresoras</title>
+<style>
+:root{--nv:#0F1B2D;--nm:#1A2E4A;--st:#2A3F5F;--sl:#3D5A80;--sg:#F5C518;--sd:#C9A30E;--ic:#F0F4F8;--im:#D9E4F0;--ok:#2ECC71;--wn:#E67E22;--dn:#E74C3C;--mu:#8899AA;--r:9px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,sans-serif;background:var(--nv);color:var(--ic);min-height:100vh;display:flex;flex-direction:column;font-size:13px;}
+header{background:var(--nm);border-bottom:2px solid var(--sg);padding:11px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.brand{display:flex;align-items:center;gap:10px;}
+.bi{width:36px;height:36px;background:var(--sg);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.bt h1{font-size:16px;font-weight:700;letter-spacing:-.3px;}
+.bt span{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:1.2px;}
+.hr{display:flex;align-items:center;gap:8px;}
+.clk{font-family:monospace;font-size:15px;color:var(--sg);font-weight:700;}
+.sbg{background:var(--st);border-radius:5px;padding:2px 9px;font-size:11px;color:var(--im);}
+.hb{background:var(--st);border:1px solid var(--sl);border-radius:6px;padding:5px 10px;color:var(--ic);font-size:11px;cursor:pointer;}
+.hb:hover{background:var(--sl);}
+.sync{border-radius:6px;padding:3px 10px;font-size:11px;border:1px solid;}
+.sync.ok{background:rgba(46,204,113,.15);border-color:var(--ok);color:var(--ok);}
+.sync.err{background:rgba(231,76,60,.15);border-color:var(--dn);color:var(--dn);}
+.cfgbar{background:var(--st);padding:7px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--im);}
+.cfgbar label{display:flex;align-items:center;gap:5px;}
+.cfgbar select,.cfgbar input[type=number]{background:var(--nm);border:1px solid var(--sl);border-radius:4px;color:var(--ic);padding:3px 7px;font-size:11px;font-family:monospace;outline:none;}
+.tabs{display:flex;background:var(--nm);border-bottom:1px solid var(--st);padding:0 22px;}
+.tb{padding:10px 18px;font-size:13px;font-weight:600;color:var(--mu);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;display:flex;align-items:center;gap:6px;}
+.tb:hover{color:var(--ic);}.tb.act{color:var(--sg);border-bottom-color:var(--sg);}
+.badge{background:var(--dn);color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;}
+.tc{display:none;flex:1;flex-direction:column;}.tc.act{display:flex;}
+.el{display:grid;grid-template-columns:340px 1fr;flex:1;min-height:0;}
+.pl{background:var(--nm);border-right:1px solid var(--st);padding:16px 15px;overflow-y:auto;display:flex;flex-direction:column;gap:13px;}
+.pr{padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:13px;}
+.rl{padding:16px 22px;display:flex;flex-direction:column;gap:13px;overflow-y:auto;flex:1;}
+.stit{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:var(--sg);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--st);}
+.fi{margin-bottom:8px;}
+.fi label{display:block;font-size:10px;color:var(--mu);margin-bottom:3px;text-transform:uppercase;letter-spacing:.6px;}
+.fi input,.fi select{width:100%;background:var(--st);border:1px solid var(--sl);border-radius:var(--r);color:var(--ic);padding:8px 11px;font-size:12px;font-family:system-ui;transition:border .2s;outline:none;appearance:none;}
+.fi input:focus,.fi select:focus{border-color:var(--sg);}
+.fi select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%238899AA' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer;}
+.fi select option{background:var(--nm);}
+.tlc{background:var(--st);border:1px solid var(--ok);border-radius:var(--r);padding:8px 11px;display:flex;justify-content:space-between;align-items:center;}
+.tlci strong{display:block;font-size:13px;}.tlci span{font-size:10px;color:var(--mu);}
+.tlcx{background:none;border:none;color:var(--dn);font-size:16px;cursor:pointer;padding:0;}
+.sfi{margin-top:5px;}
+.sfi label{display:block;font-size:10px;color:var(--mu);margin-bottom:2px;text-transform:uppercase;letter-spacing:.6px;}
+.sfi input{width:100%;background:var(--st);border:1px solid var(--sl);border-radius:7px;color:var(--ic);padding:7px 10px;font-size:12px;font-family:system-ui;outline:none;}
+.sfi input:focus{border-color:var(--sg);}
+.sa{background:var(--st);border-radius:var(--r);padding:11px;}
+.sr{display:flex;gap:6px;margin-bottom:7px;}
+.sr input{flex:1;background:var(--nv);border:2px solid var(--sl);border-radius:7px;color:var(--sg);padding:8px 11px;font-size:14px;font-family:monospace;font-weight:700;letter-spacing:2px;outline:none;}
+.sr input:focus{border-color:var(--sg);}
+.sr input::placeholder{color:var(--mu);font-size:11px;letter-spacing:1px;}
+.bp{background:var(--sl);border:none;border-radius:7px;padding:8px 13px;color:var(--ic);font-size:18px;cursor:pointer;}
+.bp:hover{background:var(--sg);color:var(--nv);}
+.chips{display:flex;flex-wrap:wrap;gap:4px;min-height:26px;max-height:120px;overflow-y:auto;}
+.chip{display:flex;align-items:center;gap:4px;background:var(--nv);border:1px solid var(--ok);border-radius:5px;padding:2px 7px;font-family:monospace;font-size:11px;color:var(--ok);}
+.chipx{background:none;border:none;color:var(--dn);cursor:pointer;font-size:11px;padding:0;}
+.smeta{font-size:10px;color:var(--mu);margin-top:5px;display:flex;justify-content:space-between;}
+.smeta strong{color:var(--sg);}
+.sbox{background:var(--st);border-radius:var(--r);padding:9px 11px;font-size:11px;line-height:1.9;}
+.sbox .row{display:flex;justify-content:space-between;}
+.sbox .row strong{color:var(--ic);}
+.sbox .row span{color:var(--mu);font-size:10px;text-transform:uppercase;}
+.btnP{width:100%;background:var(--sg);color:var(--nv);border:none;border-radius:var(--r);padding:11px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s;}
+.btnP:hover{background:var(--sd);}
+.btnS{background:var(--st);border:none;border-radius:7px;padding:7px 14px;color:var(--ic);cursor:pointer;font-size:12px;}
+.btnG{background:var(--sg);border:none;border-radius:7px;padding:7px 14px;color:var(--nv);cursor:pointer;font-size:12px;font-weight:700;}
+.btnI{background:var(--sl);border:none;border-radius:5px;padding:4px 10px;color:var(--ic);font-size:11px;cursor:pointer;white-space:nowrap;}
+.btnI:hover{background:var(--ok);color:var(--nv);}
+.btnI:disabled{background:var(--st);color:var(--mu);cursor:not-allowed;}
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.sc{background:var(--nm);border-radius:var(--r);padding:11px 13px;border-left:3px solid var(--sg);}
+.sc.ok{border-left-color:var(--ok);}.sc.wn{border-left-color:var(--wn);}.sc.dn{border-left-color:var(--dn);}
+.sl2{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px;}
+.sv{font-family:monospace;font-size:22px;font-weight:700;}
+.sv.c-sg{color:var(--sg);}.sv.c-ok{color:var(--ok);}.sv.c-wn{color:var(--wn);}.sv.c-dn{color:var(--dn);}
+.tw{background:var(--nm);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;}
+.th2{padding:10px 14px 8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--st);flex-wrap:wrap;gap:8px;}
+.th2 h3{font-size:12px;font-weight:600;}
+table{width:100%;border-collapse:collapse;table-layout:fixed;}
+thead th{text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);background:var(--st);border-bottom:1px solid var(--sl);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+tbody tr{border-bottom:1px solid rgba(61,90,128,.4);transition:background .1s;}
+tbody tr:hover{background:rgba(61,90,128,.25);}
+tbody td{padding:8px 10px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;}
+.mono{font-family:monospace;font-size:11px;color:var(--sg);}
+.pill{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;}
+.pill-active{background:rgba(46,204,113,.15);color:var(--ok);}
+.pill-returned{background:rgba(42,63,95,.5);color:var(--mu);}
+.pill-partial{background:rgba(230,126,34,.15);color:var(--wn);}
+.emp{text-align:center;padding:32px;color:var(--mu);}
+.emp div{font-size:28px;margin-bottom:7px;}
+/* RECEPCION TABLE */
+.rec-layout{padding:16px 22px;display:flex;flex-direction:column;gap:13px;overflow-y:auto;flex:1;}
+/* MODALS */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:149;align-items:center;justify-content:center;}
+.ov.act{display:flex;}
+.mod{background:var(--nm);border:1px solid var(--sl);border-radius:12px;padding:22px;width:90%;max-width:500px;box-shadow:0 4px 24px rgba(0,0,0,.2);}
+.mod h2{font-size:15px;font-weight:700;margin-bottom:4px;}
+.mod p{color:var(--im);font-size:12px;margin-bottom:13px;}
+.mod pre{background:var(--nv);border-radius:7px;padding:11px;font-family:monospace;font-size:10px;white-space:pre-wrap;max-height:180px;overflow-y:auto;color:var(--sg);margin-bottom:0;}
+.ma{display:flex;gap:7px;justify-content:flex-end;margin-top:14px;}
+.cff{margin-bottom:9px;}
+.cff label{display:block;font-size:10px;color:var(--mu);margin-bottom:3px;text-transform:uppercase;letter-spacing:.6px;}
+.cff input{width:100%;background:var(--st);border:1px solid var(--sl);border-radius:7px;color:var(--ic);padding:7px 10px;font-size:12px;font-family:system-ui;outline:none;}
+.cff input:focus{border-color:var(--sg);}
+/* DEV MODAL */
+#devOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:149;}
+#devPanel{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:150;width:90%;max-width:540px;background:var(--nm);border:1px solid var(--sl);border-radius:14px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,.5);max-height:85vh;overflow-y:auto;}
+.dev-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.dev-head h3{font-size:14px;font-weight:600;}
+.dev-close{background:none;border:none;color:var(--mu);font-size:22px;cursor:pointer;line-height:1;}
+.exp-chips{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:10px;}
+.exp-chip{background:var(--st);border:1px solid var(--sl);border-radius:4px;padding:2px 7px;font-family:monospace;font-size:10px;color:var(--mu);}
+.exp-chip.done{border-color:var(--ok);color:var(--ok);background:rgba(46,204,113,.08);}
+.ret-ok{background:rgba(46,204,113,.1);border:1px solid var(--ok);border-radius:8px;padding:14px;text-align:center;margin-top:10px;}
+.ret-ok h3{font-size:14px;color:var(--ok);margin:5px 0 3px;}
+.ret-wn{background:rgba(231,76,60,.1);border:1px solid var(--dn);border-radius:8px;padding:12px;margin-top:10px;}
+.ret-wn h3{font-size:13px;color:var(--dn);margin:0 0 7px;text-align:center;}
+.mchips{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:7px;}
+.mch{background:rgba(231,76,60,.18);border:1px solid var(--dn);border-radius:4px;padding:2px 7px;font-family:monospace;font-size:10px;color:var(--dn);}
+/* TL ADMIN */
+.amod{max-width:660px!important;max-height:88vh;display:flex;flex-direction:column;}
+.atabs{display:flex;border-bottom:1px solid var(--st);margin-bottom:13px;}
+.atb{padding:8px 16px;font-size:12px;font-weight:600;color:var(--mu);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;}
+.atb.act{color:var(--sg);border-bottom-color:var(--sg);}
+.adg{display:grid;grid-template-columns:1fr 1fr;gap:14px;flex:1;overflow:hidden;}
+.adc{display:flex;flex-direction:column;gap:7px;overflow:hidden;}
+.adc h4{font-size:10px;font-weight:700;color:var(--sg);text-transform:uppercase;letter-spacing:1px;}
+.alist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:3px;}
+.ai{display:flex;align-items:center;justify-content:space-between;background:var(--st);border-radius:6px;padding:7px 9px;cursor:pointer;border:2px solid transparent;}
+.ai:hover{background:var(--sl);}.ai.sel{border-color:var(--sg);}
+.ai span{font-size:12px;}.ai small{font-size:10px;color:var(--mu);}
+.tlist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:3px;}
+.ti{display:flex;flex-direction:column;gap:2px;background:var(--st);border-radius:6px;padding:7px 9px;}
+.tir{display:flex;justify-content:space-between;align-items:center;}
+.ti span{font-size:12px;}.ti small{font-size:10px;color:var(--mu);font-family:monospace;}
+.db{background:none;border:none;color:var(--dn);cursor:pointer;font-size:12px;opacity:.55;padding:0;}
+.db:hover{opacity:1;}
+.ar{display:flex;gap:5px;}
+.ar input{flex:1;background:var(--nv);border:1px solid var(--sl);border-radius:5px;color:var(--ic);padding:6px 9px;font-size:12px;outline:none;}
+.ar input:focus{border-color:var(--sg);}
+.ar button{background:var(--sg);border:none;border-radius:5px;padding:6px 11px;color:var(--nv);font-weight:700;font-size:13px;cursor:pointer;}
+.ph{font-size:11px;color:var(--mu);text-align:center;padding:14px;}
+.csvinfo{background:rgba(245,197,24,.07);border:1px solid rgba(245,197,24,.25);border-radius:8px;padding:12px 14px;font-size:11px;line-height:1.8;margin-bottom:10px;}
+.dz{border:2px dashed var(--sl);border-radius:9px;padding:26px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:10px;}
+.dz:hover,.dz.dzo{border-color:var(--sg);background:rgba(245,197,24,.04);}
+.pvw{display:none;flex-direction:column;gap:8px;}
+.pvw.show{display:flex;}
+.pvwt{max-height:180px;overflow-y:auto;border-radius:7px;border:1px solid var(--st);}
+.pvwt table{width:100%;border-collapse:collapse;font-size:11px;table-layout:auto;}
+.pvwt thead th{padding:6px 9px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--mu);background:var(--st);}
+.pvwt tbody td{padding:5px 9px;border-bottom:1px solid var(--st);}
+.prow{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.toast{position:fixed;bottom:18px;right:18px;background:var(--ok);color:var(--nv);padding:9px 16px;border-radius:7px;font-weight:600;font-size:12px;z-index:400;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.dn{background:var(--dn);color:#fff;}
+.loader{position:fixed;inset:0;background:rgba(15,27,45,.9);z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div style="font-size:36px;">🖨️</div>
+  <div style="color:var(--sg);font-size:14px;font-weight:600;">Conectando con Google Sheets...</div>
+  <div style="color:var(--mu);font-size:12px;">Cargando datos compartidos</div>
+</div>
+
+<header>
+  <div class="brand">
+    <div class="bi">🖨️</div>
+    <div class="bt"><h1>ZebraControl</h1><span>Gestión de Impresoras Zebra</span></div>
+  </div>
+  <div class="hr">
+    <div class="clk" id="clk">00:00:00</div>
+    <div class="sbg" id="shft">Turno —</div>
+    <div class="sync err" id="syncBadge">🔴 Sin conexión</div>
+    <button class="hb" onclick="openA()">👥 Áreas y TLs</button>
+    <button class="hb" onclick="openCfg()">📧 Correos</button>
+  </div>
+</header>
+
+<div class="cfgbar">
+  <label>Total Zebras: <input type="number" id="cfgTotal" value="50" min="1" max="1000" onchange="uCfg()"></label>
+  <label>Fin de turno:
+    <select id="cfgShift" onchange="uCfg()">
+      <option value="06:00">06:00 — Nocturno</option>
+      <option value="15:30" selected>15:30 — Matutino</option>
+      <option value="21:40">21:40 — Vespertino</option>
+    </select>
+  </label>
+  <label>Holgura (min): <input type="number" id="cfgGrace" value="30" min="0" max="120" style="width:52px;" onchange="uCfg()"></label>
+</div>
+
+<div class="tabs">
+  <button class="tb act" id="t-ent" onclick="sTab('ent')">📤 Entrega de Zebras</button>
+  <button class="tb" id="t-rec" onclick="sTab('rec')">📥 Recepción / Devolución <span class="badge" id="tbadge" style="display:none">0</span></button>
+</div>
+
+<!-- TAB ENTREGA -->
+<div class="tc act" id="tc-ent">
+  <div class="el">
+    <div class="pl">
+      <div>
+        <div class="stit">👤 Solicitante</div>
+        <div class="fi"><label>Nombre</label><input type="text" id="rName" placeholder="Ej. Juan Pérez" oninput="uSum()"></div>
+        <div class="fi"><label>Rol</label>
+          <select id="rRole" onchange="onRole()">
+            <option value="rep">Representante / Operador</option>
+            <option value="tl">Team Leader (TL)</option>
+          </select>
+        </div>
+      </div>
+      <div id="tlSec">
+        <div class="stit">🏷️ TL Responsable</div>
+        <div class="fi"><label>Área</label><select id="areaS" onchange="onArea()"><option value="">— Selecciona área —</option></select></div>
+        <div class="fi" id="tlSF" style="display:none"><label>Team Leader</label><select id="tlS" onchange="onTL()"><option value="">— Selecciona TL —</option></select></div>
+        <div id="tlCard" style="display:none">
+          <div class="tlc">
+            <div class="tlci"><strong id="tlCN">—</strong><span id="tlCA">—</span></div>
+            <button class="tlcx" onclick="clrTL()">✕</button>
+          </div>
+          <div class="sfi"><label>Correo TL</label><input type="email" id="tlEM" placeholder="tl@empresa.com"></div>
+          <div class="sfi"><label>Correo Jefe Directo</label><input type="email" id="tlBM" placeholder="jefe@empresa.com"></div>
+        </div>
+      </div>
+      <div>
+        <div class="stit">🖨️ Escaneo de Zebras</div>
+        <div class="sa">
+          <div class="sr"><input type="text" id="scanIn" placeholder="Escanear # Zebra" maxlength="30" onkeydown="if(event.key==='Enter')addZ()"><button class="bp" onclick="addZ()">＋</button></div>
+          <div class="chips" id="chips"><span style="color:var(--mu);font-size:11px;">Sin Zebras escaneadas</span></div>
+          <div class="smeta"><span>Escaneadas: <strong id="scn">0</strong></span><span>Disponibles: <strong id="avl">50</strong></span></div>
+        </div>
+      </div>
+      <div>
+        <div class="stit">📋 Resumen</div>
+        <div class="sbox">
+          <div class="row"><span>Solicitante</span><strong id="sN">—</strong></div>
+          <div class="row"><span>Rol</span><strong id="sR">—</strong></div>
+          <div class="row"><span>TL</span><strong id="sTL">—</strong></div>
+          <div class="row"><span>Área</span><strong id="sA">—</strong></div>
+          <div class="row"><span>Zebras</span><strong id="sC">0</strong></div>
+          <div class="row"><span>Devolver antes</span><strong id="sDL" style="color:var(--sg)">—</strong></div>
+        </div>
+      </div>
+      <button class="btnP" onclick="regDel()">📤 Registrar entrega y enviar correo</button>
+    </div>
+    <div class="pr">
+      <div class="sgrid">
+        <div class="sc"><div class="sl2">Total</div><div class="sv c-sg" id="stT">50</div></div>
+        <div class="sc ok"><div class="sl2">Disponibles</div><div class="sv c-ok" id="stA">50</div></div>
+        <div class="sc wn"><div class="sl2">En uso</div><div class="sv c-wn" id="stU">0</div></div>
+        <div class="sc dn"><div class="sl2">Devueltas</div><div class="sv c-dn" id="stR">0</div></div>
+      </div>
+      <div class="tw">
+        <div class="th2">
+          <h3>📋 Registros del turno</h3>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <select id="entFilter" onchange="rRecs()" style="background:var(--st);border:1px solid var(--sl);border-radius:6px;color:var(--ic);padding:4px 8px;font-size:11px;outline:none;cursor:pointer;">
+              <option value="all">Todos</option>
+              <option value="active">Activo</option>
+              <option value="returned">Devuelto</option>
+            </select>
+            <span style="font-size:10px;color:var(--mu);" id="rCnt">0 registros</span>
+          </div>
+        </div>
+        <div style="overflow-y:auto;max-height:calc(100vh - 420px);">
+          <table>
+            <colgroup><col style="width:20%"><col style="width:16%"><col style="width:13%"><col style="width:22%"><col style="width:12%"><col style="width:10%"><col style="width:7%"></colgroup>
+            <thead><tr><th>Solicitante</th><th>TL</th><th>Área</th><th>Zebras asignadas</th><th>Estado</th><th>Devolver antes</th><th>Acción</th></tr></thead>
+            <tbody id="rBody"><tr><td colspan="7"><div class="emp"><div>🖨️</div>Sin registros</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB RECEPCION -->
+<div class="tc" id="tc-rec">
+  <div class="rec-layout">
+    <div class="sgrid">
+      <div class="sc"><div class="sl2">Total</div><div class="sv c-sg" id="mstT">50</div></div>
+      <div class="sc ok"><div class="sl2">Disponibles</div><div class="sv c-ok" id="mstA">50</div></div>
+      <div class="sc wn"><div class="sl2">En uso</div><div class="sv c-wn" id="mstU">0</div></div>
+      <div class="sc dn"><div class="sl2">Devueltas</div><div class="sv c-dn" id="mstR">0</div></div>
+    </div>
+    <div class="tw">
+      <div class="th2">
+        <h3>📥 Zebras en campo</h3>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="text" id="searchBox" placeholder="🔍 Buscar Zebra, TL, nombre..." oninput="rRecRec()" style="background:var(--st);border:1px solid var(--sl);border-radius:6px;color:var(--ic);padding:5px 10px;font-size:11px;outline:none;width:200px;">
+          <select id="recFilter" onchange="rRecRec()" style="background:var(--st);border:1px solid var(--sl);border-radius:6px;color:var(--ic);padding:4px 8px;font-size:11px;outline:none;cursor:pointer;">
+            <option value="active">Solo activos</option>
+            <option value="all">Todos</option>
+          </select>
+          <span style="font-size:10px;color:var(--mu);" id="recCnt">0 registros</span>
+        </div>
+      </div>
+      <div style="overflow-y:auto;max-height:calc(100vh - 280px);">
+        <table>
+          <colgroup><col style="width:18%"><col style="width:15%"><col style="width:12%"><col style="width:22%"><col style="width:11%"><col style="width:12%"><col style="width:10%"></colgroup>
+          <thead><tr><th>Solicitante</th><th>TL</th><th>Área</th><th>Zebras</th><th>Estado</th><th>Devolver antes</th><th>Acción</th></tr></thead>
+          <tbody id="recBody"><tr><td colspan="7"><div class="emp"><div>🖨️</div>Sin registros</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DEV MODAL -->
+<div id="devOverlay" onclick="clsDev()"></div>
+<div id="devPanel">
+  <div class="dev-head">
+    <h3 id="devTitle">📥 Registrar devolución</h3>
+    <button class="dev-close" onclick="clsDev()">✕</button>
+  </div>
+  <div style="font-size:11px;color:var(--mu);margin-bottom:8px;">Escanea las Zebras que se devuelven — se marcan en verde.</div>
+  <div class="exp-chips" id="expChips"></div>
+  <div class="sr" style="margin-bottom:7px;"><input type="text" id="devIn" placeholder="Escanear # Zebra" maxlength="30" onkeydown="if(event.key==='Enter')addDevZ()"><button class="bp" onclick="addDevZ()">＋</button></div>
+  <div style="font-size:11px;color:var(--mu);margin-bottom:10px;" id="devMeta">Devueltas: 0 / 0</div>
+  <div id="devRes"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;" id="devActs">
+    <button class="btnS" onclick="clsDev()">Cancelar</button>
+    <button class="btnG" onclick="confDev()">✔ Confirmar devolución</button>
+  </div>
+</div>
+
+<!-- EMAIL MODAL -->
+<div class="ov" id="emModal">
+  <div class="mod">
+    <h2 id="emT">📧 Correo</h2><p>Revisa y abre en Gmail.</p>
+    <pre id="emC"></pre>
+    <div class="ma"><button class="btnS" onclick="clsEM()">Cerrar</button><button class="btnS" onclick="cpyEM()">📋 Copiar</button><button class="btnG" onclick="openGM()">📨 Abrir en Gmail</button></div>
+  </div>
+</div>
+
+<!-- CONFIG MODAL -->
+<div class="ov" id="cfgModal">
+  <div class="mod">
+    <h2>📧 Correos del sistema</h2><p>Destinatarios para notificaciones.</p>
+    <div class="cff"><label>Supervisor turno siguiente</label><input type="email" id="cfgNS" placeholder="supervisor@empresa.com"></div>
+    <div class="cff"><label>CC adicional</label><input type="email" id="cfgCC2" placeholder="otro@empresa.com"></div>
+    <div class="ma"><button class="btnS" onclick="clsCfg()">Cancelar</button><button class="btnG" onclick="savCfg()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- TL ADMIN MODAL -->
+<div class="ov" id="aModal">
+  <div class="mod amod">
+    <h2 style="margin-bottom:4px;">👥 Áreas y Team Leaders</h2>
+    <div class="atabs">
+      <button class="atb act" id="at-man" onclick="sATab('man')">✏️ Manual</button>
+      <button class="atb" id="at-csv" onclick="sATab('csv')">📂 Importar CSV</button>
+    </div>
+    <div id="aTab-man" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+      <div class="adg">
+        <div class="adc">
+          <h4>📂 Áreas</h4>
+          <div class="ar"><input type="text" id="nAI" placeholder="Nueva área" maxlength="40" onkeydown="if(event.key==='Enter')addArea()"><button onclick="addArea()">＋</button></div>
+          <div class="alist" id="aList"></div>
+        </div>
+        <div class="adc">
+          <h4>👤 TLs — <span id="aSel" style="color:var(--im);font-weight:400;font-size:10px;">selecciona área</span></h4>
+          <div class="ar" id="aTLRow" style="display:none;"><input type="text" id="nTI" placeholder="Nombre TL" maxlength="60" onkeydown="if(event.key==='Enter')addTL()"><button onclick="addTL()">＋</button></div>
+          <div id="aTLEM" style="display:none;margin-top:4px;">
+            <input type="email" id="nTEM" placeholder="Correo TL" style="width:100%;background:var(--nv);border:1px solid var(--sl);border-radius:5px;color:var(--ic);padding:5px 8px;font-size:11px;margin-bottom:3px;outline:none;">
+            <input type="email" id="nTBM" placeholder="Correo jefe directo" style="width:100%;background:var(--nv);border:1px solid var(--sl);border-radius:5px;color:var(--ic);padding:5px 8px;font-size:11px;outline:none;">
+          </div>
+          <div class="tlist" id="tList"><div class="ph">← Selecciona un área</div></div>
+        </div>
+      </div>
+    </div>
+    <div id="aTab-csv" style="display:none;flex-direction:column;gap:10px;">
+      <div class="csvinfo">
+        <strong style="color:var(--sg);">Formato requerido:</strong><br>
+        <code style="font-family:monospace;font-size:10px;color:var(--im);">Area,Nombre TL,Correo TL,Correo Jefe</code><br>
+        <span style="color:var(--mu);">Las áreas se crean automáticamente. Los correos son opcionales.</span>
+      </div>
+      <button class="btnS" onclick="dlTpl()" style="font-size:11px;width:fit-content;">⬇️ Descargar plantilla</button>
+      <div id="dz" class="dz" ondragover="event.preventDefault();this.classList.add('dzo')" ondragleave="this.classList.remove('dzo')" ondrop="hDrop(event)" onclick="document.getElementById('csvFI').click()">
+        <div style="font-size:28px;margin-bottom:6px;">📂</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Arrastra tu CSV aquí</div>
+        <div style="font-size:11px;color:var(--mu);">o haz clic para seleccionar</div>
+        <input type="file" id="csvFI" accept=".csv,text/csv" style="display:none" onchange="hFile(this.files[0])">
+      </div>
+      <div class="pvw" id="pvw">
+        <div class="prow">
+          <span style="font-size:12px;font-weight:600;" id="pvwT">Vista previa</span>
+          <div style="display:flex;gap:7px;align-items:center;">
+            <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);cursor:pointer;"><input type="checkbox" id="csvMrg" checked style="accent-color:var(--sg);"> Mantener existentes</label>
+            <button class="btnS" onclick="clrPvw()" style="font-size:10px;">✕</button>
+            <button class="btnG" onclick="confCSV()" style="font-size:11px;">✅ Importar</button>
+          </div>
+        </div>
+        <div class="pvwt">
+          <table><thead><tr><th>Área</th><th>TL</th><th>Correo TL</th><th>Correo Jefe</th><th>Estado</th></tr></thead>
+          <tbody id="pvwB"></tbody></table>
+        </div>
+      </div>
+    </div>
+    <div class="ma" style="border-top:1px solid var(--st);padding-top:12px;margin-top:8px;"><button class="btnG" onclick="clsA()">Listo</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GS_URL = '/api/sheets';
+let cfg={totalZebras:50,shiftEnd:'15:30',graceMin:30,nextSupEmail:'',ccEmail:''};
+let areas={},records=[],scanned=[];
+let selArea='',selTL='',adminArea='',devId=null,devDone=[];
+let curEmail='',csvRows=[];
+
+// ── INIT ──────────────────────────────────────────────────
+async function init(){
+  await load();
+  document.getElementById('loader').style.display='none';
+  tick(); setInterval(tick,1000); setInterval(sync,15000); setTimeout(sync,5000);
+  rAreaSel(); rRecs(); rRecRec(); uStats(); uSum();
+}
+async function load(){
+  try{
+    const[rr,cr]=await Promise.all([gsGet('getRecords'),gsGet('getConfig')]);
+    if(rr&&rr.records)records=rr.records;
+    if(cr&&cr.config){
+      if(cr.config.appConfig)cfg={...cfg,...cr.config.appConfig};
+      if(cr.config.areas)areas=cr.config.areas;
+    }
+    document.getElementById('cfgTotal').value=cfg.totalZebras||50;
+    document.getElementById('cfgShift').value=cfg.shiftEnd;
+    document.getElementById('cfgGrace').value=cfg.graceMin;
+    document.getElementById('cfgNS').value=cfg.nextSupEmail||'';
+    document.getElementById('cfgCC2').value=cfg.ccEmail||'';
+    document.getElementById('stT').textContent=cfg.totalZebras||50;
+    document.getElementById('mstT').textContent=cfg.totalZebras||50;
+    setSyncBadge(true);
+  }catch(e){setSyncBadge(false);}
+}
+async function gsGet(a){
+  try{const r=await fetch(GS_URL+'?action='+a);const d=await r.json();setSyncBadge(true);return d;}
+  catch(e){setSyncBadge(false);return null;}
+}
+async function gsPost(data){
+  try{const r=await fetch(GS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const d=await r.json();setSyncBadge(true);return d;}
+  catch(e){setSyncBadge(false);return null;}
+}
+function setSyncBadge(ok){
+  const b=document.getElementById('syncBadge');
+  b.className='sync '+(ok?'ok':'err');
+  b.textContent=ok?'🟢 Sheets OK':'🔴 Sin conexión';
+}
+async function sync(){
+  if(window._syncPaused)return;
+  try{const r=await gsGet('getRecords');if(r&&r.records){records=r.records;rRecs();rRecRec();uStats();}}catch(e){}
+}
+async function svCfg(){gsPost({action:'saveConfig',config:{appConfig:cfg}}).catch(()=>{});}
+async function svRec(rec){gsPost({action:'saveRecord',record:rec}).catch(()=>{});}
+async function svAreas(){gsPost({action:'saveAreas',areas}).catch(()=>{});}
+
+// ── CLOCK ──────────────────────────────────────────────────
+function tick(){
+  const n=new Date();
+  document.getElementById('clk').textContent=n.toLocaleTimeString('es-MX',{hour12:false});
+  const h=n.getHours();
+  document.getElementById('shft').textContent='Turno '+(h<6?'Nocturno':h<14?'Matutino':h<22?'Vespertino':'Nocturno');
+}
+
+// ── CONFIG ──────────────────────────────────────────────────
+function uCfg(){cfg.totalZebras=parseInt(document.getElementById('cfgTotal').value)||50;cfg.shiftEnd=document.getElementById('cfgShift').value;cfg.graceMin=parseInt(document.getElementById('cfgGrace').value)||30;uStats();uSum();svCfg();}
+function openCfg(){document.getElementById('cfgNS').value=cfg.nextSupEmail;document.getElementById('cfgCC2').value=cfg.ccEmail;document.getElementById('cfgModal').classList.add('act');}
+function clsCfg(){document.getElementById('cfgModal').classList.remove('act');}
+function savCfg(){cfg.nextSupEmail=document.getElementById('cfgNS').value.trim();cfg.ccEmail=document.getElementById('cfgCC2').value.trim();svCfg();clsCfg();toast('✅ Guardado');}
+function getDL(){
+  if(!cfg.shiftEnd)return null;
+  const[h,m]=cfg.shiftEnd.split(':').map(Number);
+  const d=new Date();d.setHours(h,m+cfg.graceMin,0,0);
+  if(d<new Date())d.setDate(d.getDate()+1);
+  return d;
+}
+
+// ── TABS ──────────────────────────────────────────────────
+function sTab(t){
+  ['ent','rec'].forEach(x=>{document.getElementById('t-'+x).classList.toggle('act',x===t);document.getElementById('tc-'+x).classList.toggle('act',x===t);});
+  if(t==='rec')rRecRec();
+}
+
+// ── ROLE/TL ──────────────────────────────────────────────────
+function onRole(){const isTL=document.getElementById('rRole').value==='tl';document.getElementById('tlSec').style.display=isTL?'none':'block';if(isTL){selArea='';selTL='';}uSum();}
+function rAreaSel(){
+  const s=document.getElementById('areaS');
+  const srt=Object.keys(areas).sort((a,b)=>a.localeCompare(b,'es'));
+  s.innerHTML='<option value="">— Selecciona área —</option>'+srt.map(a=>`<option value="${e(a)}">${e(a)} (${areas[a].length})</option>`).join('');
+  if(selArea)s.value=selArea;
+}
+function onArea(){
+  selArea=document.getElementById('areaS').value;selTL='';
+  document.getElementById('tlCard').style.display='none';
+  const sf=document.getElementById('tlSF');
+  if(!selArea){sf.style.display='none';uSum();return;}
+  const s=document.getElementById('tlS');
+  const tls=(areas[selArea]||[]).slice().sort((a,b)=>{const na=typeof a==='object'?a.name:a,nb=typeof b==='object'?b.name:b;return na.localeCompare(nb,'es');});
+  s.innerHTML='<option value="">— Selecciona TL —</option>'+tls.map(t=>{const n=typeof t==='object'?t.name:t;return'<option value="'+e(n)+'">'+e(n)+'</option>';}).join('');
+  sf.style.display='block';s.value='';uSum();
+}
+function onTL(){
+  selTL=document.getElementById('tlS').value;if(!selTL)return;
+  const obj=(areas[selArea]||[]).find(t=>(typeof t==='object'?t.name:t)===selTL);
+  document.getElementById('tlCN').textContent=selTL;
+  document.getElementById('tlCA').textContent=selArea;
+  document.getElementById('tlEM').value=typeof obj==='object'?(obj.email||''):'';
+  document.getElementById('tlBM').value=typeof obj==='object'?(obj.boss||''):'';
+  document.getElementById('tlCard').style.display='block';
+  document.getElementById('tlSF').style.display='none';
+  document.getElementById('areaS').style.display='none';
+  uSum();
+}
+function clrTL(){selTL='';selArea='';document.getElementById('tlCard').style.display='none';document.getElementById('tlSF').style.display='none';document.getElementById('areaS').style.display='block';document.getElementById('areaS').value='';uSum();}
+
+// ── SCANNER ──────────────────────────────────────────────────
+function addZ(){
+  const inp=document.getElementById('scanIn');const v=inp.value.trim().toUpperCase();if(!v)return;
+  if(scanned.includes(v)){toast('⚠️ Ya escaneada',1);inp.value='';return;}
+  const inU=records.filter(r=>r.status!=='returned').reduce((s,r)=>s+(r.zebras||[]).length,0);
+  if(scanned.length+inU>=cfg.totalZebras){toast('⚠️ Sin Zebras disponibles',1);return;}
+  scanned.push(v);inp.value='';rChips();uSum();uStats();inp.focus();
+}
+function rmZ(v){scanned=scanned.filter(r=>r!==v);rChips();uSum();uStats();}
+function rChips(){
+  const c=document.getElementById('chips');document.getElementById('scn').textContent=scanned.length;
+  if(!scanned.length){c.innerHTML='<span style="color:var(--mu);font-size:11px;">Sin Zebras escaneadas</span>';return;}
+  c.innerHTML=scanned.map(r=>'<div class="chip">🖨️ '+e(r)+'<button class="chipx" onclick="rmZ(\''+e(r)+'\')">✕</button></div>').join('');
+}
+
+// ── SUMMARY / STATS ──────────────────────────────────────────────────
+function uSum(){
+  const nm=document.getElementById('rName').value.trim()||'—';
+  const isTL=document.getElementById('rRole').value==='tl';
+  document.getElementById('sN').textContent=nm;
+  document.getElementById('sR').textContent=isTL?'Team Leader':'Representante';
+  document.getElementById('sTL').textContent=isTL?nm:(selTL||'—');
+  document.getElementById('sA').textContent=isTL?'—':(selArea||'—');
+  document.getElementById('sC').textContent=scanned.length;
+  const dl=getDL();document.getElementById('sDL').textContent=dl?dl.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',hour12:true}):'—';
+  const inU=records.filter(r=>r.status!=='returned').reduce((s,r)=>s+(r.zebras||[]).length,0);
+  document.getElementById('avl').textContent=Math.max(0,cfg.totalZebras-inU-scanned.length);
+}
+function uStats(){
+  const inU=records.filter(r=>r.status!=='returned').reduce((s,r)=>s+(r.zebras||[]).length,0);
+  const ret=records.filter(r=>r.status==='returned').length;
+  const avail=Math.max(0,cfg.totalZebras-inU-scanned.length);
+  ['stT','mstT'].forEach(id=>document.getElementById(id).textContent=cfg.totalZebras);
+  ['stA','mstA'].forEach(id=>document.getElementById(id).textContent=avail);
+  ['stU','mstU'].forEach(id=>document.getElementById(id).textContent=inU);
+  ['stR','mstR'].forEach(id=>document.getElementById(id).textContent=ret);
+  const ac=records.filter(r=>r.status!=='returned').length;
+  const bd=document.getElementById('tbadge');
+  if(ac>0){bd.textContent=ac;bd.style.display='inline-block';}else bd.style.display='none';
+}
+
+// ── DELIVERY ──────────────────────────────────────────────────
+function regDel(){
+  const nm=document.getElementById('rName').value.trim();
+  const isTL=document.getElementById('rRole').value==='tl';
+  const tl=isTL?nm:selTL,area=isTL?'TL directo':selArea;
+  const tlEmail=isTL?'':(document.getElementById('tlEM')?.value?.trim()||'');
+  const tlBoss=isTL?'':(document.getElementById('tlBM')?.value?.trim()||'');
+  if(!nm){toast('⚠️ Ingresa nombre del solicitante',1);return;}
+  if(!isTL&&!selTL){toast('⚠️ Selecciona el TL',1);return;}
+  if(!scanned.length){toast('⚠️ Escanea al menos una Zebra',1);return;}
+  const dl=getDL();
+  const rec={
+    id:Date.now().toString(),folio:'ZB-'+Date.now().toString().slice(-6),
+    requester:nm,role:isTL?'tl':'rep',tl,area,tlEmail,tlBoss,
+    zebras:[...scanned],
+    deliveredAt:new Date().toISOString(),
+    deadline:dl?dl.toISOString():null,
+    status:'active',
+    returnedZebras:[],missingZebras:[]
+  };
+  records.push(rec);svRec(rec);svCfg();
+  scanned=[];rChips();document.getElementById('rName').value='';clrTL();rAreaSel();uSum();rRecs();rRecRec();uStats();
+  showEM('📤 Correo de entrega — '+rec.folio,genDelEM(rec));
+}
+
+// ── DEVOLUCION ──────────────────────────────────────────────────
+window.openDev=function(id){
+  const rec=records.find(function(r){return String(r.id)===String(id);});
+  if(!rec)return;
+  devId=String(id);devDone=[];
+  document.getElementById('devTitle').textContent='📥 Devolución — '+rec.requester+' | TL: '+rec.tl;
+  document.getElementById('devIn').value='';
+  document.getElementById('devMeta').textContent='Devueltas: 0 / '+(rec.zebras||[]).length;
+  document.getElementById('devRes').innerHTML='';
+  document.getElementById('devActs').style.display='flex';
+  const c=document.getElementById('expChips');
+  c.innerHTML='';
+  (rec.zebras||[]).forEach(function(z){
+    const s=document.createElement('span');
+    s.className='exp-chip';s.textContent='🖨️ '+z;c.appendChild(s);
+  });
+  document.getElementById('devOverlay').style.display='block';
+  document.getElementById('devPanel').style.display='block';
+  window._syncPaused=true;
+  setTimeout(function(){document.getElementById('devIn').focus();},200);
+};
+
+function clsDev(){
+  document.getElementById('devPanel').style.display='none';
+  document.getElementById('devOverlay').style.display='none';
+  devId=null;devDone=[];window._syncPaused=false;
+}
+
+function addDevZ(){
+  const rec=records.find(function(r){return String(r.id)===String(devId);});if(!rec)return;
+  const inp=document.getElementById('devIn');const v=inp.value.trim().toUpperCase();if(!v)return;
+  if(devDone.includes(v)){toast('⚠️ Ya escaneada',1);inp.value='';return;}
+  if(!(rec.zebras||[]).includes(v)){toast('⚠️ Zebra '+v+' no pertenece a este registro',1);inp.value='';return;}
+  devDone.push(v);inp.value='';
+  const c=document.getElementById('expChips');
+  c.innerHTML='';
+  (rec.zebras||[]).forEach(function(z){
+    const s=document.createElement('span');
+    s.className='exp-chip'+(devDone.includes(z)?' done':'');s.textContent='🖨️ '+z;c.appendChild(s);
+  });
+  document.getElementById('devMeta').textContent='Devueltas: '+devDone.length+' / '+(rec.zebras||[]).length;
+  inp.focus();
+}
+
+function confDev(){
+  const rec=records.find(function(r){return String(r.id)===String(devId);});if(!rec)return;
+  if(!devDone.length){toast('⚠️ Escanea al menos una Zebra',1);return;}
+  const miss=(rec.zebras||[]).filter(function(z){return !devDone.includes(z);});
+  const ok=miss.length===0;
+  rec.returnedZebras=[...devDone];rec.missingZebras=miss;
+  rec.status='returned';rec.returnedAt=new Date().toISOString();
+  svRec(rec);
+  document.getElementById('devActs').style.display='none';
+  if(ok){
+    document.getElementById('devRes').innerHTML='<div class="ret-ok"><div style="font-size:32px">🎉</div><h3>¡Todas las Zebras devueltas!</h3><p style="font-size:11px;color:var(--im);">'+rec.zebras.length+' Zebras devueltas correctamente. ¡Buen turno, '+e(rec.tl)+'!</p></div>';
+  }else{
+    document.getElementById('devRes').innerHTML='<div class="ret-wn"><h3>Faltan '+miss.length+' Zebra'+( miss.length!==1?'s':'')+'</h3><div class="mchips">'+miss.map(function(z){return'<div class="mch">🖨️ '+e(z)+'</div>';}).join('')+'</div><p style="font-size:11px;color:var(--im);">'+devDone.length+' devueltas de '+rec.zebras.length+'.</p></div>';
+  }
+  rRecs();rRecRec();uStats();
+  setTimeout(function(){
+    clsDev();
+    showEM(ok?'✅ Correo devolución — '+rec.folio:'⚠️ Correo devolución parcial — '+rec.folio,genRetEM(rec,ok,miss));
+  },1600);
+}
+
+// ── RENDER TABLES ──────────────────────────────────────────────────
+function rRecs(){
+  const tbody=document.getElementById('rBody');
+  const fv=document.getElementById('entFilter')?.value||'all';
+  let list=[...records].sort((a,b)=>{const o={active:0,returned:1};return(o[a.status]||0)-(o[b.status]||0);});
+  if(fv!=='all')list=list.filter(r=>r.status===fv);
+  const ac=records.filter(r=>r.status!=='returned').length;
+  document.getElementById('rCnt').textContent=list.length+' mostrado(s) · '+ac+' activo(s)';
+  if(!list.length){tbody.innerHTML='<tr><td colspan="7"><div class="emp"><div>🖨️</div>Sin registros</div></td></tr>';return;}
+  tbody.innerHTML=list.map(function(rec){
+    const dl=rec.deadline?new Date(rec.deadline):null;
+    const dlT=dl?dl.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',hour12:true}):'—';
+    const dt=new Date(rec.deliveredAt).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',hour12:true});
+    const hasMiss=rec.missingZebras&&rec.missingZebras.length>0;
+    let st='',ac2='';
+    if(rec.status==='returned'){
+      st=hasMiss?'<span class="pill pill-partial">Parcial</span>':'<span class="pill pill-returned">✅ Devuelta</span>';
+      ac2='<button class="btnI" onclick="window.reSend(\''+rec.id+'\')">📧</button>';
+    }else{
+      st='<span class="pill pill-active">Activo</span>';
+      ac2='<button class="btnI dev-btn" data-id="'+rec.id+'">📥</button>';
+    }
+    const zs=(rec.zebras||[]);
+    const zsum=zs.length<=3?zs.join(', '):zs.slice(0,2).join(', ')+' +'+( zs.length-2)+' más';
+    return'<tr><td><strong>'+e(rec.requester)+'</strong><br><span style="font-size:10px;color:var(--mu);">'+(rec.role==='tl'?'TL':'Rep')+' · '+dt+'</span></td><td>'+e(rec.tl)+'</td><td>'+e(rec.area)+'</td><td class="mono" title="'+e(zs.join(', '))+'">'+e(zsum)+'<br><span style="color:var(--mu);font-size:10px;">'+zs.length+' Zebra(s)</span></td><td>'+st+'</td><td style="color:var(--sg);font-weight:600;font-size:11px;">'+dlT+'</td><td>'+ac2+'</td></tr>';
+  }).join('');
+}
+
+function rRecRec(){
+  const tbody=document.getElementById('recBody');
+  const fv=document.getElementById('recFilter')?.value||'active';
+  const q=document.getElementById('searchBox')?.value?.toLowerCase()||'';
+  let list=fv==='all'?[...records]:records.filter(r=>r.status!=='returned');
+  if(q)list=list.filter(r=>r.requester.toLowerCase().includes(q)||r.tl.toLowerCase().includes(q)||r.area.toLowerCase().includes(q)||(r.zebras||[]).some(z=>z.toLowerCase().includes(q)));
+  list.sort((a,b)=>{const o={active:0,returned:1};return(o[a.status]||0)-(o[b.status]||0);});
+  document.getElementById('recCnt').textContent=list.length+' registro(s)';
+  if(!list.length){tbody.innerHTML='<tr><td colspan="7"><div class="emp"><div>✅</div>Sin pendientes</div></td></tr>';return;}
+  tbody.innerHTML=list.map(function(rec){
+    const dl=rec.deadline?new Date(rec.deadline):null;
+    const dlT=dl?dl.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',hour12:true}):'—';
+    const dt=new Date(rec.deliveredAt).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',hour12:true});
+    const hasMiss=rec.missingZebras&&rec.missingZebras.length>0;
+    let st='',ac2='';
+    if(rec.status==='returned'){
+      st=hasMiss?'<span class="pill pill-partial">Parcial</span>':'<span class="pill pill-returned">✅ Devuelta</span>';
+      ac2='<button class="btnI" onclick="window.reSend(\''+rec.id+'\')">📧 Reenviar</button>';
+    }else{
+      st='<span class="pill pill-active">Activo</span>';
+      ac2='<button class="btnI dev-btn" data-id="'+rec.id+'" style="background:var(--sg);color:var(--nv);font-weight:700;">📥 Devolver</button>';
+    }
+    const zs=(rec.zebras||[]);
+    const zsum=zs.length<=4?zs.join(', '):zs.slice(0,3).join(', ')+' +'+( zs.length-3)+' más';
+    return'<tr><td><strong>'+e(rec.requester)+'</strong><br><span style="font-size:10px;color:var(--mu);">'+(rec.role==='tl'?'TL':'Rep')+' · '+dt+'</span></td><td>'+e(rec.tl)+'</td><td>'+e(rec.area)+'</td><td class="mono" title="'+e(zs.join(', '))+'">'+e(zsum)+'<br><span style="color:var(--mu);font-size:10px;">'+zs.length+' Zebra(s)</span></td><td>'+st+'</td><td style="color:var(--sg);font-weight:600;font-size:11px;">'+dlT+'</td><td>'+ac2+'</td></tr>';
+  }).join('');
+}
+
+// Event delegation for devolver buttons
+document.addEventListener('click',function(ev){
+  const btn=ev.target.closest('.dev-btn');
+  if(!btn)return;
+  const id=btn.getAttribute('data-id');
+  if(id)window.openDev(id);
+},true);
+
+// ── EMAILS ──────────────────────────────────────────────────
+function bossFor(rec){return rec.tlBoss||'';}
+function toL(){return Array.from(arguments).filter(Boolean).join(', ');}
+function genDelEM(rec){
+  const dt=new Date(rec.deliveredAt),dl=rec.deadline?new Date(rec.deadline):null;
+  const to=toL(bossFor(rec)||'[jefe@empresa.com]',rec.tlEmail||'[tl@empresa.com]');
+  return'Para: '+to+'\nCC: '+(cfg.ccEmail||'')+'\nAsunto: [ZebraControl '+rec.folio+'] Entrega Zebras — TL: '+rec.tl+' | '+rec.area+'\n\nSe informa entrega de impresoras Zebra:\n\n  Folio:          '+rec.folio+'\n  Solicitante:    '+rec.requester+' ('+(rec.role==='tl'?'TL':'Rep')+')\n  TL responsable: '+rec.tl+'\n  Área:           '+rec.area+'\n  Entregado:      '+dt.toLocaleString('es-MX')+'\n  Zebras ('+rec.zebras.length+'): '+rec.zebras.join(', ')+'\n  Devolver antes: '+(dl?dl.toLocaleString('es-MX'):'N/A')+'\n\nSistema ZebraControl';
+}
+function genRetEM(rec,ok,miss){
+  const rt=new Date(rec.returnedAt);
+  const to=toL(bossFor(rec)||'[jefe@empresa.com]',rec.tlEmail||'[tl@empresa.com]');
+  if(ok)return'Para: '+to+'\nCC: '+(cfg.ccEmail||'')+'\nAsunto: ✅ [ZebraControl '+rec.folio+'] Devolución completa — TL: '+rec.tl+'\n\nDevolución completa de Zebras:\n\n  Folio:     '+rec.folio+'\n  TL:        '+rec.tl+' | '+rec.area+'\n  Hora:      '+rt.toLocaleString('es-MX')+'\n  Devueltas: '+rec.zebras.length+' de '+rec.zebras.length+'\n  Zebras:    '+rec.zebras.join(', ')+'\n\n✅ Todos los equipos devueltos.\n\nSistema ZebraControl';
+  return'Para: '+to+'\nCC: '+(cfg.ccEmail||'')+'\nAsunto: ⚠️ [ZebraControl '+rec.folio+'] Devolución PARCIAL — TL: '+rec.tl+'\n\nDevolución PARCIAL de Zebras:\n\n  Folio:         '+rec.folio+'\n  TL:            '+rec.tl+' | '+rec.area+'\n  Devueltas:     '+rec.returnedZebras.length+' de '+rec.zebras.length+'\n  FALTANTES ('+miss.length+'): '+miss.join(', ')+'\n  Hora:          '+rt.toLocaleString('es-MX')+'\n\n⚠️ Localizar equipos faltantes.\n\nSistema ZebraControl';
+}
+window.reSend=function(id){
+  const rec=records.find(r=>r.id===id);if(!rec)return;
+  const miss=rec.missingZebras||[];
+  showEM(miss.length===0?'✅ Devolución completa':'⚠️ Devolución parcial',genRetEM(rec,miss.length===0,miss));
+};
+
+function showEM(tit,content){curEmail=content;document.getElementById('emT').textContent=tit;document.getElementById('emC').textContent=content;document.getElementById('emModal').classList.add('act');}
+function clsEM(){document.getElementById('emModal').classList.remove('act');}
+function cpyEM(){navigator.clipboard.writeText(curEmail).then(()=>toast('📋 Copiado'));}
+function openGM(){
+  const lines=curEmail.split('\n');
+  const to=lines[0].replace('Para: ','').trim();
+  const subj=lines[2].replace('Asunto: ','').trim();
+  window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(subj)+'&body='+encodeURIComponent(curEmail),'_blank');
+}
+
+// ── TL ADMIN ──────────────────────────────────────────────────
+function openA(){adminArea='';rAList();rTList();sATab('man');document.getElementById('aModal').classList.add('act');}
+function clsA(){document.getElementById('aModal').classList.remove('act');rAreaSel();uSum();}
+function sATab(t){['man','csv'].forEach(x=>{document.getElementById('at-'+x).classList.toggle('act',x===t);document.getElementById('aTab-'+x).style.display=x===t?(x==='man'?'flex':'flex'):'none';});if(t==='csv')clrPvw();}
+function rAList(){
+  const c=document.getElementById('aList');
+  const srt=Object.keys(areas).sort((a,b)=>a.localeCompare(b,'es'));
+  if(!srt.length){c.innerHTML='<div class="ph">Sin áreas.</div>';return;}
+  c.innerHTML=srt.map(a=>'<div class="ai'+(adminArea===a?' sel':'')+'" onclick="selA(\''+e(a)+'\')"><div><span>'+e(a)+'</span><br><small>'+areas[a].length+' TL'+(areas[a].length!==1?'s':'')+'</small></div><button class="db" onclick="event.stopPropagation();delA(\''+e(a)+'\')">🗑</button></div>').join('');
+}
+function addArea(){const inp=document.getElementById('nAI');const n=inp.value.trim();if(!n)return;if(areas[n]!==undefined){toast('⚠️ Área ya existe',1);return;}areas[n]=[];inp.value='';svAreas();rAList();toast('✅ Área "'+n+'" creada');}
+function delA(n){if(!confirm('¿Eliminar "'+n+'"?'))return;delete areas[n];if(adminArea===n){adminArea='';rTList();}svAreas();rAList();}
+function selA(n){adminArea=n;document.getElementById('aSel').textContent=n;document.getElementById('aTLRow').style.display='flex';document.getElementById('aTLEM').style.display='block';rAList();rTList();}
+function rTList(){
+  const c=document.getElementById('tList');
+  if(!adminArea){c.innerHTML='<div class="ph">← Selecciona un área</div>';return;}
+  const tls=(areas[adminArea]||[]).slice().sort((a,b)=>{const na=typeof a==='object'?a.name:a,nb=typeof b==='object'?b.name:b;return na.localeCompare(nb,'es');});
+  if(!tls.length){c.innerHTML='<div class="ph">Sin TLs.</div>';return;}
+  c.innerHTML=tls.map(t=>{const nm=typeof t==='object'?t.name:t,em=typeof t==='object'?(t.email||''):'',bs=typeof t==='object'?(t.boss||''):'';return'<div class="ti"><div class="tir"><span>👤 <strong>'+e(nm)+'</strong></span><button class="db" onclick="delTL(\''+e(nm)+'\')">🗑</button></div>'+(em?'<small>✉ '+e(em)+'</small>':'')+(bs?'<small>👔 '+e(bs)+'</small>':'')+'</div>';}).join('');
+}
+function addTL(){
+  if(!adminArea)return;
+  const n=document.getElementById('nTI').value.trim();if(!n)return;
+  const ex=areas[adminArea].some(t=>(typeof t==='object'?t.name:t)===n);if(ex){toast('⚠️ TL ya existe',1);return;}
+  const em=document.getElementById('nTEM').value.trim(),bs=document.getElementById('nTBM').value.trim();
+  areas[adminArea].push({name:n,email:em,boss:bs});
+  document.getElementById('nTI').value='';document.getElementById('nTEM').value='';document.getElementById('nTBM').value='';
+  svAreas();rTList();rAList();toast('✅ TL "'+n+'" agregado');
+}
+function delTL(n){if(!adminArea)return;areas[adminArea]=areas[adminArea].filter(t=>(typeof t==='object'?t.name:t)!==n);svAreas();rTList();rAList();}
+
+// ── CSV ──────────────────────────────────────────────────
+function dlTpl(){const csv='Area,Nombre TL,Correo TL,Correo Jefe\nInbound,María García,maria@emp.com,jefe@emp.com';const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='plantilla_tls_zebra.csv';a.click();}
+function hDrop(e2){e2.preventDefault();document.getElementById('dz').classList.remove('dzo');const f=e2.dataTransfer.files[0];if(f)hFile(f);}
+function hFile(f){if(!f)return;const r=new FileReader();r.onload=ev=>{try{parseCSV(ev.target.result);}catch(err){toast('⚠️ Error: '+err.message,1);}};r.readAsText(f,'UTF-8');}
+function parseCSV(txt){
+  const lines=txt.split(/\r?\n/).filter(l=>l.trim());if(lines.length<2){toast('⚠️ CSV vacío',1);return;}
+  const hdr=lines[0].split(',').map(h=>h.trim().toLowerCase());
+  const iA=hdr.findIndex(h=>h.includes('area')||h.includes('área'));
+  const iN=hdr.findIndex(h=>h.includes('nombre')||h.includes('tl'));
+  const iE=hdr.findIndex(h=>h.includes('correo tl')||h.includes('email tl'));
+  const iB=hdr.findIndex(h=>h.includes('jefe')||h.includes('boss'));
+  if(iA<0||iN<0){toast('⚠️ Faltan columnas Area y Nombre TL',1);return;}
+  csvRows=[];
+  for(let i=1;i<lines.length;i++){
+    const c=spCSV(lines[i]);if(!c[iA]||!c[iN])continue;
+    csvRows.push({area:(c[iA]||'').trim(),name:(c[iN]||'').trim(),email:iE>=0?(c[iE]||'').trim():'',boss:iB>=0?(c[iB]||'').trim():''});
+  }
+  if(!csvRows.length){toast('⚠️ Sin filas válidas',1);return;}
+  rPvw();
+}
+function spCSV(l){const r=[];let c='',q=false;for(let i=0;i<l.length;i++){const ch=l[i];if(ch==='"')q=!q;else if(ch===','&&!q){r.push(c);c='';}else c+=ch;}r.push(c);return r;}
+function rPvw(){
+  document.getElementById('pvwT').textContent='Vista previa — '+csvRows.length+' TL'+(csvRows.length!==1?'s':'');
+  document.getElementById('pvwB').innerHTML=csvRows.map(row=>{
+    const ex=areas[row.area]&&areas[row.area].some(t=>(typeof t==='object'?t.name:t)===row.name);
+    return'<tr><td>'+e(row.area)+'</td><td>'+e(row.name)+'</td><td style="font-family:monospace;font-size:10px;color:var(--mu)">'+e(row.email)||'—'+'</td><td style="font-family:monospace;font-size:10px;color:var(--mu)">'+e(row.boss)||'—'+'</td><td>'+(ex?'<span style="font-size:9px;background:rgba(230,126,34,.15);color:var(--wn);padding:2px 6px;border-radius:10px;">Ya existe</span>':'<span style="font-size:9px;background:rgba(46,204,113,.15);color:var(--ok);padding:2px 6px;border-radius:10px;">Nuevo</span>')+'</td></tr>';
+  }).join('');
+  document.getElementById('pvw').classList.add('show');
+  document.getElementById('dz').style.display='none';
+}
+function clrPvw(){csvRows=[];document.getElementById('pvw').classList.remove('show');document.getElementById('dz').style.display='block';document.getElementById('csvFI').value='';}
+function confCSV(){
+  if(!csvRows.length)return;
+  const mrg=document.getElementById('csvMrg').checked;let added=0,upd=0,skip=0;
+  csvRows.forEach(row=>{
+    if(!areas[row.area])areas[row.area]=[];
+    const idx=areas[row.area].findIndex(t=>(typeof t==='object'?t.name:t)===row.name);
+    if(idx>=0){if(mrg)skip++;else{areas[row.area][idx]={name:row.name,email:row.email,boss:row.boss};upd++;}}
+    else{areas[row.area].push({name:row.name,email:row.email,boss:row.boss});added++;}
+  });
+  svAreas();clrPvw();sATab('man');rAList();rTList();rAreaSel();
+  toast('✅ '+added+' nuevos, '+upd+' actualizados, '+skip+' sin cambios');
+}
+
+// ── UTILS ──────────────────────────────────────────────────
+function toast(msg,dn=0){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(dn?' dn':'')+' show';setTimeout(()=>t.className='toast',3200);}
+function e(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+init();
+</script>
+</body>
+</html>
